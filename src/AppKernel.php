@@ -8,9 +8,6 @@ use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Kernel;
-use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
-use Symfony\Component\Routing\Loader\PhpFileLoader as RoutingPhpFileLoader;
-use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouteCollectionBuilder;
 
 /**
@@ -171,34 +168,15 @@ class AppKernel extends Kernel
      */
     public function loadRoutes(LoaderInterface $loader)
     {
-        if (class_exists(RoutingConfigurator::class)) {
-            $file = (new \ReflectionObject($this))->getFileName();
-            /** @var RoutingPhpFileLoader $kernelLoader */
-            $kernelLoader = $loader->getResolver()->resolve($file, 'php');
-            $kernelLoader->setCurrentDir(\dirname($file));
+        $routes = new RouteCollectionBuilder($loader);
 
-            $collection = new RouteCollection();
-            $configurator = new RoutingConfigurator($collection, $kernelLoader, $file, $file, $this->getEnvironment());
-
-            if ($this->routingFile) {
-                $configurator->import($this->routingFile);
-            } else {
-                $configurator->import(__DIR__.'/config/routing.yml');
-            }
-
-            return $collection;
+        if ($this->routingFile) {
+            $routes->import($this->routingFile);
         } else {
-            // Legacy
-            $routes = new RouteCollectionBuilder($loader);
-
-            if ($this->routingFile) {
-                $routes->import($this->routingFile);
-            } else {
-                $routes->import(__DIR__.'/config/routing.yml');
-            }
-
-            return $routes->build();
+            $routes->import(__DIR__.'/config/routing.yml');
         }
+
+        return $routes->build();
     }
 
     /**
@@ -229,13 +207,5 @@ class AppKernel extends Kernel
     public function setRoutingFile($routingFile)
     {
         $this->routingFile = $routingFile;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isBooted()
-    {
-        return $this->booted;
     }
 }
